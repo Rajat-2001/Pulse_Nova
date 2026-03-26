@@ -1,0 +1,112 @@
+# ----------------------
+# Virtual Environments
+# ----------------------
+venv/
+env/
+.venv/
+pulse/        # your virtual environment
+ENV/
+env.bak/
+venv.bak/
+
+# ----------------------
+# Python Cache / Compiled
+# ----------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ----------------------
+# Distribution / Packaging
+# ----------------------
+.Python
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ----------------------
+# Logs & Runtime Files
+# ----------------------
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# ----------------------
+# Environment Variables
+# ----------------------
+.env
+.env.*
+*.env
+
+# ----------------------
+# Jupyter Notebook
+# ----------------------
+.ipynb_checkpoints/
+
+# ----------------------
+# IDEs / Editors
+# ----------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ----------------------
+# OS Files
+# ----------------------
+.DS_Store
+Thumbs.db
+
+# ----------------------
+# Testing / Coverage
+# ----------------------
+.coverage
+.coverage.*
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# ----------------------
+# Type Checkers
+# ----------------------
+.mypy_cache/
+.pyre/
+.pytype/
+
+# ----------------------
+# C Extensions
+# ----------------------
+*.so
+
+# ----------------------
+# SQLite
+# ----------------------
+*.sqlite3
+*.db
+
+# ----------------------
+# FastAPI / Uvicorn
+# ----------------------
+*.uvicorn
+
+# ----------------------
+# Misc
+# ----------------------
+*.bak
+*.tmp
+*.temp
