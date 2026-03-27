@@ -4,6 +4,9 @@ from typing import Optional
 import requests
 from services import stt, tts
 from fastapi.staticfiles import StaticFiles
+from fastapi import APIRouter
+from services import gmail_bot
+
 
 app = FastAPI()
 
@@ -18,6 +21,11 @@ def home():
 
 class Prompt_Request(BaseModel):
     prompt: str
+
+class SendEmailRequest(BaseModel):
+    to: str
+    subject: str
+    body_intention: str
 
 
 def query_llm(user_prompt: str):
@@ -56,3 +64,17 @@ def generate_from_voice(audio: UploadFile = File(...)):
         "response": assistant_text,
         "audio": audio_url
     }
+
+router = APIRouter(prefix="/email", tags=["Email"])
+@router.get("/read")
+def read_emails():
+    emails = gmail_bot.read_unread_emails()
+    return {"emails": emails}
+
+@router.post("/send")
+def send_email_endpoint(req: SendEmailRequest):
+    result = gmail_bot.send_email(req.to, req.subject, req.body_intention)
+    return result
+
+app.include_router(router)
+

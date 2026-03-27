@@ -110,3 +110,10 @@ coverage.xml
 *.bak
 *.tmp
 *.temp
+
+credentials.json
+token.pickle
+run_auth.py
+.env
+*.gguf
+data/models/

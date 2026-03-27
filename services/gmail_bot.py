@@ -117,6 +117,8 @@ import html2text
 import requests
 import os
 from dotenv import load_dotenv
+import yagmail
+
 
 load_dotenv()
 
@@ -195,3 +197,30 @@ def read_unread_emails(limit=EMAIL_LIMIT):
 
     mail.logout()
     return results
+
+def compose_email_with_llm(intention: str):
+    """Use LLM to write a professional email from a rough intention"""
+    response = requests.post(
+        "http://127.0.0.1:8000/generate/text",
+        json={"prompt": f"""Write a short, professional email based on this intention:
+'{intention}'
+Return only the email body, no subject line, no extra explanation."""}
+    )
+    return response.json()["response"]
+
+def send_email(to: str, subject: str, body_intention: str):
+    """Compose with LLM then send via Gmail"""
+    
+    # LLM writes the professional email
+    professional_body = compose_email_with_llm(body_intention)
+    
+    # Send it
+    yag = yagmail.SMTP(user=USERNAME, password=PASSWORD)
+    yag.send(to=to, subject=subject, contents=professional_body)
+    
+    return {
+        "status": "sent",
+        "to": to,
+        "subject": subject,
+        "body_sent": professional_body  # show what LLM wrote
+    }
