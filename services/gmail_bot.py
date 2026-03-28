@@ -199,22 +199,30 @@ def read_unread_emails(limit=EMAIL_LIMIT):
     return results
 
 def compose_email_with_llm(intention: str):
-    """Use LLM to write a professional email from a rough intention"""
     response = requests.post(
         "http://127.0.0.1:8000/generate/text",
-        json={"prompt": f"""Write a short, professional email based on this intention:
+        json={"prompt": f"""Write an email based on this instruction:
 '{intention}'
-Return only the email body, no subject line, no extra explanation."""}
+
+Rules:
+- Match the tone exactly
+- Do NOT add anything not mentioned
+- Do NOT invent content, links, or signatures
+- If instruction is empty or unclear, return empty string
+- Return ONLY the email body, nothing else"""}
     )
     return response.json()["response"]
 
+
+
 def send_email(to: str, subject: str, body_intention: str):
-    """Compose with LLM then send via Gmail"""
     
-    # LLM writes the professional email
-    professional_body = compose_email_with_llm(body_intention)
+    # ✅ If body is empty, don't call LLM — send empty email
+    if not body_intention or body_intention.strip() == "":
+        professional_body = ""
+    else:
+        professional_body = compose_email_with_llm(body_intention)
     
-    # Send it
     yag = yagmail.SMTP(user=USERNAME, password=PASSWORD)
     yag.send(to=to, subject=subject, contents=professional_body)
     
@@ -222,5 +230,5 @@ def send_email(to: str, subject: str, body_intention: str):
         "status": "sent",
         "to": to,
         "subject": subject,
-        "body_sent": professional_body  # show what LLM wrote
+        "body_sent": professional_body
     }
