@@ -6,6 +6,7 @@ from services import stt, tts
 from fastapi.staticfiles import StaticFiles
 from fastapi import APIRouter
 from services import gmail_bot
+from services import calendar_service
 
 
 app = FastAPI()
@@ -26,6 +27,23 @@ class SendEmailRequest(BaseModel):
     to: str
     subject: str
     body_intention: str
+
+class CreateEventRequest(BaseModel):
+    summary: str
+    date: str           # "2026-03-28"
+    time: str           # "14:00"
+    duration_hours: int = 1
+    location: str = ""
+    description: str = ""
+
+class ModifyEventRequest(BaseModel):
+    event_id: str
+    summary: str = None
+    date: str = None
+    time: str = None
+    location: str = None
+    description: str = None
+
 
 
 def query_llm(user_prompt: str):
@@ -75,6 +93,41 @@ def read_emails():
 def send_email_endpoint(req: SendEmailRequest):
     result = gmail_bot.send_email(req.to, req.subject, req.body_intention)
     return result
+
+calendar_router = APIRouter(prefix="/calendar", tags=["Calendar"])
+
+@calendar_router.get("/upcoming")
+def upcoming_events():
+    events = calendar_service.get_upcoming_events()
+    return {"events": events}
+
+@calendar_router.get("/date/{date}")
+def events_by_date(date: str):
+    events = calendar_service.get_events_by_date(date)
+    return {"events": events}
+
+@calendar_router.post("/create")
+def create_event(req: CreateEventRequest):
+    result = calendar_service.create_event(
+        req.summary, req.date, req.time,
+        req.duration_hours, req.location, req.description
+    )
+    return result
+
+@calendar_router.put("/modify")
+def modify_event(req: ModifyEventRequest):
+    result = calendar_service.modify_event(
+        req.event_id, req.summary, req.date,
+        req.time, req.location, req.description
+    )
+    return result
+
+@calendar_router.delete("/delete/{event_id}")
+def delete_event(event_id: str):
+    result = calendar_service.delete_event(event_id)
+    return result
+
+app.include_router(calendar_router)
 
 app.include_router(router)
 
