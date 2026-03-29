@@ -137,3 +137,41 @@ def handle_discord_message(req: DiscordMessage):
 app.include_router(email_router)
 app.include_router(calendar_router)
 app.include_router(discord_router)
+
+
+from services import rag_services
+from fastapi import UploadFile, File
+import shutil
+import os
+
+rag_router = APIRouter(prefix="/rag", tags=["RAG"])
+
+class RAGQuery(BaseModel):
+    question: str
+
+@rag_router.post("/upload")
+def upload_pdf(file: UploadFile = File(...)):
+    # Save uploaded file temporarily
+    temp_path = f"data/uploads/{file.filename}"
+    os.makedirs("data/uploads", exist_ok=True)
+    with open(temp_path, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    result = rag_services.ingest_pdf(temp_path)
+    return result
+
+@rag_router.post("/ingest-emails")
+def ingest_emails():
+    result = rag_services.ingest_emails()
+    return result
+
+@rag_router.post("/query")
+def query_rag(req: RAGQuery):
+    answer = rag_services.query_rag(req.question)
+    return {"answer": answer}
+
+@rag_router.get("/documents")
+def list_documents():
+    docs = rag_services.list_documents()
+    return {"documents": docs}
+
+app.include_router(rag_router)
