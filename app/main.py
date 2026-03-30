@@ -143,7 +143,14 @@ from services import rag_services
 from fastapi import UploadFile, File
 import shutil
 import os
+from fastapi.middleware.cors import CORSMiddleware
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 rag_router = APIRouter(prefix="/rag", tags=["RAG"])
 
 class RAGQuery(BaseModel):
