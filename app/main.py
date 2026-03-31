@@ -16,7 +16,13 @@ app = FastAPI()
 # ----------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://rajat-2001.github.io",  # ← add your GitHub Pages URL
+        "http://127.0.0.1:5500",
+        "http://127.0.0.1:8000",
+        "*"
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -817,12 +817,12 @@
     </button>
   </div>
 </div>
-<script src="config.js"></script>
+<!-- <script src="config.js"></script> -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
+<!-- <script>
 // const BASE = 'http://127.0.0.1:8000';
-const BASE = CONFIG.BASE_URL;
+const BASE = 'https://unfixative-kourtney-unshorten.ngrok-free.dev' ;
 const SESSION_ID = 'session_' + Date.now();
 
 // ════ SIDEBAR TOGGLE ════
@@ -950,6 +950,9 @@ async function sendChat() {
 
       const res = await fetch(`${BASE}/generate/voice`, {
         method: 'POST',
+        headers: {
+          'ngrok-skip-browser-warning': 'true' // Add this here!
+        },
         body: fd,
         signal: controller.signal
       });
@@ -960,12 +963,7 @@ async function sendChat() {
       addMsg('ai', data.response || '❌ No response', data.audio || null);
 
     } catch(e) {
-      removeTyping();
-      if (e.name === 'AbortError') {
-        addMsg('ai', '❌ Request timed out. Try a shorter audio clip!');
-      } else {
-        addMsg('ai', `❌ Error: ${e.message}`);
-      }
+      // ... catch logic
     }
     return;
   }
@@ -977,7 +975,10 @@ async function sendChat() {
   try {
     const res = await fetch(`${BASE}/generate/text`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true' // Add this here!
+      },
       body: JSON.stringify({ prompt: text, session_id: SESSION_ID })
     });
     const data = await res.json();
@@ -1222,6 +1223,453 @@ async function queryRag() {
     const res = await fetch(`${BASE}/rag/query`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q })
+    });
+    const data = await res.json();
+    ans.textContent = data.answer || 'No answer returned.';
+    ans.classList.add('show');
+  } catch (e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
+}
+</script> -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// 1. GLOBALS SET UP CORRECTLY
+const BASE = 'https://unfixative-kourtney-unshorten.ngrok-free.dev';
+const SESSION_ID = 'session_' + Date.now();
+let voiceFileForChat = null; // FIXED: Declared globally right at the top!
+let mediaRecorder, recordedChunks = [];
+
+const NGROK_HEADERS = {
+  'ngrok-skip-browser-warning': 'true'
+};
+
+// ════ SIDEBAR TOGGLE ════
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+// ════ PANEL SWITCHING ════
+function switchPanel(id, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('topbarLabel').textContent = id;
+}
+
+// ════ TOAST ════
+function toast(msg, type = 'info', icon = 'bi-info-circle') {
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = `toast-item ${type}`;
+  el.innerHTML = `<i class="bi ${icon}"></i><span>${msg}</span>`;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ════ CHAT HELPERS ════
+function fillChat(card) {
+  document.getElementById('chatInput').value = card.querySelector('p').textContent;
+  autoH(document.getElementById('chatInput'));
+}
+function autoH(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 180) + 'px';
+}
+function onKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+function hideGreeting() {
+  const g = document.getElementById('greeting');
+  if (g) { g.style.opacity = '0'; g.style.transition = 'opacity 0.3s'; setTimeout(() => g.remove(), 300); }
+}
+function scrollBot() {
+  const s = document.getElementById('chatScroll');
+  s.scrollTo({ top: s.scrollHeight, behavior: 'smooth' });
+}
+function getTime() {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/\n/g, '<br/>');
+}
+
+function addMsg(role, text, audioUrl = null) {
+  const list = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}`;
+  const av = role === 'ai'
+    ? '<div class="msg-av ai">PN</div>'
+    : '<div class="msg-av hu">U</div>';
+  let extra = '';
+  if (audioUrl) extra = `<div class="audio-player"><audio controls src="${audioUrl}"></audio></div>`;
+  row.innerHTML = `${av}
+    <div class="msg-body">
+      <div class="msg-bubble">${escHtml(text)}${extra}</div>
+      <div class="msg-time">${getTime()}</div>
+    </div>`;
+  list.appendChild(row);
+  scrollBot();
+}
+
+function showTyping() {
+  const list = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.className = 'msg-row ai'; row.id = 'typingRow';
+  row.innerHTML = `<div class="msg-av ai">PN</div>
+    <div class="msg-body">
+      <div class="msg-bubble">
+        <div class="typing-bubble"><span></span><span></span><span></span></div>
+      </div>
+    </div>`;
+  list.appendChild(row); scrollBot();
+}
+function removeTyping() { const t = document.getElementById('typingRow'); if (t) t.remove(); }
+
+// ════ CLEAR MEMORY ════  
+async function clearMemory() {
+  try {
+    await fetch(`${BASE}/memory/clear?session_id=${SESSION_ID}`, { 
+      method: 'DELETE',
+      headers: NGROK_HEADERS // Ngrok header added
+    });
+  } catch(e) { /* backend may not be running */ }
+  document.getElementById('messages').innerHTML = '';
+  toast('Memory cleared!', 'success', 'bi-trash');
+}
+
+// ════ SEND CHAT ════
+async function sendChat() {
+  const inp = document.getElementById('chatInput');
+  const text = inp.value.trim();
+
+  if (!voiceFileForChat && !text) return;
+  hideGreeting();
+
+  // — Voice file path —
+  if (voiceFileForChat) {
+    const fileToSend = voiceFileForChat;
+    voiceFileForChat = null;
+    clearFile();
+
+    addMsg('user', `🎤 Voice: ${fileToSend.name || 'audio'}`);
+    inp.value = ''; inp.style.height = 'auto';
+    showTyping();
+
+    try {
+      const fd = new FormData();
+      fd.append('audio', fileToSend, fileToSend.name || 'recording.webm');
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 360000);
+
+      const res = await fetch(`${BASE}/generate/voice`, {
+        method: 'POST',
+        headers: NGROK_HEADERS, // Ngrok header added
+        body: fd,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      const data = await res.json();
+      removeTyping();
+      addMsg('ai', data.response || '❌ No response', data.audio || null);
+
+    } catch(e) {
+      removeTyping();
+      if (e.name === 'AbortError') {
+        addMsg('ai', '❌ Request timed out. Try a shorter audio clip!');
+      } else {
+        addMsg('ai', `❌ Error: ${e.message}`);
+      }
+    }
+    return;
+  }
+
+  // — Text chat path —
+  addMsg('user', text);
+  inp.value = ''; inp.style.height = 'auto';
+  showTyping();
+  try {
+    const res = await fetch(`${BASE}/generate/text`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true' // Ngrok header added
+      },
+      body: JSON.stringify({ prompt: text, session_id: SESSION_ID })
+    });
+    const data = await res.json();
+    removeTyping();
+    addMsg('ai', data.response || '❌ Empty response');
+  } catch(e) {
+    removeTyping();
+    addMsg('ai', `❌ Could not reach backend at ${BASE}`);
+  }
+}
+
+// ════ VOICE FILE ════
+function setVoiceFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  voiceFileForChat = file;
+  document.getElementById('filePillName').textContent = file.name;
+  document.getElementById('filePill').classList.add('show');
+}
+function clearFile() {
+  document.getElementById('file-input').value = '';
+  document.getElementById('filePill').classList.remove('show');
+  document.getElementById('filePillName').textContent = '—';
+  voiceFileForChat = null;
+}
+
+// ════ LIVE RECORDING ════
+async function startLiveRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    recordedChunks = [];
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.start();
+    document.getElementById('voiceModal').classList.add('show');
+  } catch (e) {
+    toast('Microphone access denied', 'error', 'bi-mic-mute');
+  }
+}
+async function stopLiveRecording() {
+  document.getElementById('voiceModal').classList.remove('show');
+  mediaRecorder.stop();
+  mediaRecorder.stream.getTracks().forEach(t => t.stop());
+
+  await new Promise(r => mediaRecorder.onstop = r);
+
+  const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+  voiceFileForChat = new File([blob], 'recording.webm', { type: 'audio/webm' });
+
+  document.getElementById('filePillName').textContent = 'recording.webm';
+  document.getElementById('filePill').classList.add('show');
+  toast('Recording captured — press send!', 'success', 'bi-check-circle');
+}
+
+// ════ EMAIL ════
+async function loadEmails() {
+  const list = document.getElementById('emailList');
+  list.innerHTML = `<div style="color:var(--text2);font-size:0.82rem;display:flex;align-items:center;gap:8px;"><div class="spinner"></div> Loading emails…</div>`;
+  try {
+    const res = await fetch(`${BASE}/email/read`, {
+      headers: NGROK_HEADERS // Ngrok header added
+    });
+    const data = await res.json();
+    const emails = data.emails || [];
+    if (!emails.length) {
+      list.innerHTML = `<div class="card-dark" style="color:var(--text2);">📭 No unread emails.</div>`;
+      return;
+    }
+    list.innerHTML = emails.map(e => {
+      const initial = (e.from || '?')[0].toUpperCase();
+      return `<div class="card-dark">
+        <div class="email-card-head">
+          <div class="email-av">${initial}</div>
+          <div class="email-meta">
+            <div class="email-from">${escHtml(e.from)}</div>
+            <div class="email-subject">${escHtml(e.subject)}</div>
+          </div>
+        </div>
+        <div class="email-summary">
+          <strong>Summary</strong><br/>
+          ${escHtml(e.summary || e.body?.substring(0, 200) || '—')}
+        </div>
+      </div>`;
+    }).join('');
+  } catch (ex) {
+    list.innerHTML = `<div class="card-dark" style="color:var(--red);">❌ Could not load emails. Is the backend running?</div>`;
+  }
+}
+
+async function sendEmail() {
+  const to = document.getElementById('emailTo').value.trim();
+  const subject = document.getElementById('emailSubject').value.trim();
+  const body = document.getElementById('emailBody').value.trim();
+  if (!to || !subject) { toast('Fill in To and Subject', 'error', 'bi-exclamation'); return; }
+  toast('Sending email…', 'info', 'bi-hourglass');
+  try {
+    const res = await fetch(`${BASE}/email/send`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true' // Ngrok header added
+      },
+      body: JSON.stringify({ to, subject, body_intention: body })
+    });
+    const data = await res.json();
+    if (data.status === 'sent') {
+      toast(`Email sent to ${data.to}`, 'success', 'bi-check-circle');
+      document.getElementById('emailTo').value = '';
+      document.getElementById('emailSubject').value = '';
+      document.getElementById('emailBody').value = '';
+    } else {
+      toast('Backend error', 'error', 'bi-x-circle');
+    }
+  } catch (e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
+}
+
+// ════ CALENDAR ════
+function renderEvents(events) {
+  const list = document.getElementById('eventList');
+  if (!events.length) {
+    list.innerHTML = `<div class="card-dark" style="color:var(--text2);">📅 No events found.</div>`;
+    return;
+  }
+  list.innerHTML = events.map(ev => {
+    const dt = new Date(ev.start);
+    const timeStr = isNaN(dt) ? ev.start : dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = isNaN(dt) ? '' : dt.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return `<div class="card-dark">
+      <div class="event-card">
+        <div class="event-time-block">
+          <div class="e-time">${timeStr}</div>
+          <div style="font-size:0.62rem;color:var(--text3);margin-top:2px;">${dateStr}</div>
+        </div>
+        <div class="event-info">
+          <div class="e-title">${escHtml(ev.summary)}</div>
+          ${ev.location && ev.location !== 'No location'
+            ? `<div class="e-loc"><i class="bi bi-geo-alt"></i>${escHtml(ev.location)}</div>`
+            : ''}
+          <div style="font-size:0.68rem;color:var(--text3);font-family:'Space Mono',monospace;margin-top:4px;">${ev.id}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function loadUpcoming() {
+  document.getElementById('eventList').innerHTML = `<div style="color:var(--text2);font-size:0.82rem;display:flex;align-items:center;gap:8px;"><div class="spinner"></div> Loading…</div>`;
+  try {
+    const res = await fetch(`${BASE}/calendar/upcoming`, {
+      headers: NGROK_HEADERS // Ngrok header added
+    });
+    const data = await res.json();
+    renderEvents(data.events || []);
+  } catch (e) {
+    document.getElementById('eventList').innerHTML = `<div class="card-dark" style="color:var(--red);">❌ Error loading events.</div>`;
+  }
+}
+
+async function loadByDate() {
+  const date = document.getElementById('calDatePicker').value;
+  if (!date) { toast('Pick a date first', 'error', 'bi-calendar'); return; }
+  document.getElementById('eventList').innerHTML = `<div style="color:var(--text2);font-size:0.82rem;display:flex;align-items:center;gap:8px;"><div class="spinner"></div> Loading…</div>`;
+  try {
+    const res = await fetch(`${BASE}/calendar/date/${date}`, {
+      headers: NGROK_HEADERS // Ngrok header added
+    });
+    const data = await res.json();
+    renderEvents(data.events || []);
+  } catch (e) {
+    document.getElementById('eventList').innerHTML = `<div class="card-dark" style="color:var(--red);">❌ Error loading events.</div>`;
+  }
+}
+
+async function createEvent() {
+  const summary = document.getElementById('evSummary').value.trim();
+  const date = document.getElementById('evDate').value;
+  const time = document.getElementById('evTime').value;
+  if (!summary || !date || !time) { toast('Fill in title, date and time', 'error', 'bi-exclamation'); return; }
+  toast('Creating event…', 'info', 'bi-hourglass');
+  try {
+    const body = {
+      summary, date, time,
+      duration_hours: parseInt(document.getElementById('evDuration').value) || 1,
+      location: document.getElementById('evLocation').value,
+      description: document.getElementById('evDesc').value
+    };
+    const res = await fetch(`${BASE}/calendar/create`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true' // Ngrok header added
+      },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.status === 'created') {
+      toast(`Event "${data.summary}" created!`, 'success', 'bi-check-circle');
+      document.getElementById('evSummary').value = '';
+      document.getElementById('evDate').value = '';
+      document.getElementById('evTime').value = '';
+      document.getElementById('evLocation').value = '';
+      document.getElementById('evDesc').value = '';
+    }
+  } catch (e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
+}
+
+// ════ RAG ════
+let selectedPdf = null;
+function handlePdfSelect(e) {
+  selectedPdf = e.target.files[0];
+  document.getElementById('pdfFileName').textContent = selectedPdf ? selectedPdf.name : 'No file selected';
+}
+async function uploadPdf() {
+  if (!selectedPdf) { toast('Select a PDF first', 'error', 'bi-exclamation'); return; }
+  toast('Ingesting document…', 'info', 'bi-hourglass');
+  try {
+    const fd = new FormData(); fd.append('file', selectedPdf);
+    const res = await fetch(`${BASE}/rag/upload`, { 
+      method: 'POST', 
+      headers: NGROK_HEADERS, // Ngrok header added
+      body: fd 
+    });
+    const data = await res.json();
+    toast(data.status === 'ingested' ? `Ingested: ${data.chunks_stored} chunks` : 'Ingestion complete', 'success', 'bi-check-circle');
+    selectedPdf = null;
+    document.getElementById('pdf-input').value = '';
+    document.getElementById('pdfFileName').textContent = 'No file selected';
+  } catch (e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
+}
+async function ingestEmails() {
+  toast('Ingesting emails into RAG…', 'info', 'bi-hourglass');
+  try {
+    const res = await fetch(`${BASE}/rag/ingest-emails`, { 
+      method: 'POST',
+      headers: NGROK_HEADERS // Ngrok header added
+    });
+    const data = await res.json();
+    toast(`Ingested ${data.emails_stored || '?'} emails`, 'success', 'bi-check-circle');
+  } catch (e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
+}
+async function listDocs() {
+  const el = document.getElementById('docList');
+  el.innerHTML = '<span class="spinner"></span>';
+  try {
+    const res = await fetch(`${BASE}/rag/documents`, {
+      headers: NGROK_HEADERS // Ngrok header added
+    });
+    const data = await res.json();
+    const docs = data.documents || [];
+    el.innerHTML = docs.length
+      ? docs.map(d => `<div style="padding:5px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;">
+          <i class="bi bi-file-earmark" style="color:var(--cyan)"></i>${escHtml(d)}
+        </div>`).join('')
+      : 'No documents ingested yet.';
+  } catch (e) { el.textContent = 'Error loading documents.'; }
+}
+async function queryRag() {
+  const q = document.getElementById('ragQuestion').value.trim();
+  if (!q) { toast('Enter a question first', 'error', 'bi-question'); return; }
+  const ans = document.getElementById('ragAnswer');
+  ans.classList.remove('show'); ans.textContent = '';
+  toast('Searching your documents…', 'info', 'bi-search');
+  try {
+    const res = await fetch(`${BASE}/rag/query`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true' // Ngrok header added
+      },
       body: JSON.stringify({ question: q })
     });
     const data = await res.json();
