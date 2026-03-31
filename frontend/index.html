@@ -8,7 +8,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
   <style>
-    /* ══════════ TOKENS ══════════ */
     :root {
       --bg:          #080b10;
       --bg2:         #0d1117;
@@ -20,9 +19,6 @@
       --cyan-dim:    rgba(0,212,255,0.10);
       --cyan-glow:   rgba(0,212,255,0.22);
       --green:       #00ff9d;
-      --green-dim:   rgba(0,255,157,0.10);
-      --orange:      #ff7b35;
-      --orange-dim:  rgba(255,123,53,0.10);
       --red:         #ff4d6d;
       --text:        #c9d8ec;
       --text2:       #607d99;
@@ -34,7 +30,6 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; font-size: 15px; overflow: hidden; }
 
-    /* scanline overlay */
     body::after {
       content: '';
       position: fixed; inset: 0;
@@ -42,20 +37,26 @@
       pointer-events: none; z-index: 9999;
     }
 
-    /* ══════════ LAYOUT ══════════ */
+    /* ══ LAYOUT ══ */
     .app { display: flex; height: 100vh; }
 
-    /* ══════════ SIDEBAR ══════════ */
+    /* ══ SIDEBAR ══ */
     .sidebar {
       width: 240px; min-width: 240px;
       background: var(--bg2);
       border-right: 1px solid var(--border);
       display: flex; flex-direction: column;
       overflow: hidden;
+      transition: width 0.25s ease, min-width 0.25s ease;
     }
+    .sidebar.collapsed {
+      width: 0; min-width: 0;
+    }
+
     .sidebar-head {
       padding: 22px 18px 16px;
       border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
     }
     .logo {
       font-family: 'Space Mono', monospace;
@@ -63,27 +64,45 @@
       color: var(--cyan);
       letter-spacing: 0.05em;
       display: flex; align-items: center; gap: 8px;
+      white-space: nowrap;
     }
     .logo-dot {
       width: 8px; height: 8px; border-radius: 50%;
       background: var(--cyan);
       box-shadow: 0 0 8px var(--cyan);
       animation: blink 2s infinite;
+      flex-shrink: 0;
     }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-    .logo small { display: block; font-family: 'Outfit', sans-serif; font-size: 0.65rem; color: var(--text2); font-weight: 400; margin-top: 2px; letter-spacing: 0.12em; text-transform: uppercase; }
+    .logo small {
+      display: block; font-family: 'Outfit', sans-serif;
+      font-size: 0.65rem; color: var(--text2); font-weight: 400;
+      margin-top: 2px; letter-spacing: 0.12em; text-transform: uppercase;
+    }
 
-    /* nav tabs */
-    .nav-section { padding: 10px 10px 0; }
-    .nav-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text3); padding: 10px 8px 4px; }
+    .sidebar-close {
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 7px; color: var(--text2);
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; transition: all 0.15s;
+    }
+    .sidebar-close:hover { color: var(--cyan); border-color: var(--cyan); }
+
+    .nav-section { padding: 10px 10px 0; overflow: hidden; }
+    .nav-label {
+      font-size: 0.62rem; text-transform: uppercase;
+      letter-spacing: 0.12em; color: var(--text3);
+      padding: 10px 8px 4px; white-space: nowrap;
+    }
     .nav-item {
       display: flex; align-items: center; gap: 10px;
       padding: 9px 10px; border-radius: 8px;
       cursor: pointer; font-size: 0.83rem; color: var(--text2);
       transition: all 0.15s; margin-bottom: 2px;
-      border: 1px solid transparent;
+      border: 1px solid transparent; white-space: nowrap;
     }
-    .nav-item i { font-size: 1rem; width: 18px; text-align: center; }
+    .nav-item i { font-size: 1rem; width: 18px; text-align: center; flex-shrink: 0; }
     .nav-item:hover { background: var(--bg3); color: var(--text); }
     .nav-item.active { background: var(--cyan-dim); color: var(--cyan); border-color: rgba(0,212,255,0.2); }
     .nav-item .badge-pill {
@@ -100,23 +119,32 @@
       display: flex; align-items: center; gap: 8px;
       padding: 8px 10px; border-radius: 8px;
       background: var(--bg3); font-size: 0.75rem; color: var(--text2);
+      white-space: nowrap;
     }
     .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); flex-shrink: 0; }
     .status-bar span { font-family: 'Space Mono', monospace; font-size: 0.68rem; }
 
-    /* ══════════ MAIN ══════════ */
-    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    /* ══ MAIN ══ */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
-    /* topbar */
+    /* Topbar */
     .topbar {
       height: 52px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; padding: 0 20px; gap: 10px;
       background: var(--bg2); flex-shrink: 0;
     }
-    .topbar-title { font-family: 'Space Mono', monospace; font-size: 0.82rem; color: var(--text2); }
+    .topbar-toggle {
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 7px; color: var(--text2);
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+    }
+    .topbar-toggle:hover { color: var(--cyan); border-color: var(--cyan); }
+    .topbar-title { font-family: 'Space Mono', monospace; font-size: 0.82rem; color: var(--text2); white-space: nowrap; }
     .topbar-title span { color: var(--cyan); }
 
-    /* ══════════ PANELS ══════════ */
+    /* ══ PANELS ══ */
     .panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
     .panel.active { display: flex; }
 
@@ -128,13 +156,13 @@
     .chat-scroll::-webkit-scrollbar { width: 4px; }
     .chat-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 
-    /* greeting */
     .greeting {
       max-width: 680px; margin: 40px auto 0;
       padding: 0 24px; text-align: center;
       animation: fadeUp 0.5s ease both;
     }
     @keyframes fadeUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+
     .greeting-glyph {
       width: 70px; height: 70px; border-radius: 20px; margin: 0 auto 20px;
       background: linear-gradient(135deg, #003d55, #001a26);
@@ -143,9 +171,12 @@
       box-shadow: 0 0 30px var(--cyan-glow), inset 0 0 20px rgba(0,212,255,0.05);
     }
     .greeting-glyph i { font-size: 2rem; color: var(--cyan); }
+
     .greeting h1 {
-      font-family: 'Space Mono', monospace; font-size: clamp(1.6rem, 3vw, 2.2rem);
-      font-weight: 700; color: #e8f4ff; letter-spacing: -0.5px; margin-bottom: 8px;
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 700; color: #e8f4ff;
+      letter-spacing: -0.5px; margin-bottom: 8px;
     }
     .greeting h1 em { font-style: normal; color: var(--cyan); }
     .greeting p { color: var(--text2); font-size: 0.9rem; max-width: 420px; margin: 0 auto 28px; }
@@ -163,7 +194,6 @@
     .quick-card .q-icon { font-size: 1.1rem; margin-bottom: 5px; }
     .quick-card p { font-size: 0.78rem; color: var(--text2); margin: 0; line-height: 1.4; }
 
-    /* messages */
     .messages { max-width: 720px; margin: 0 auto; padding: 0 20px; display: flex; flex-direction: column; gap: 4px; }
     .msg-row { display: flex; gap: 10px; padding: 10px 0; animation: fadeUp 0.25s ease both; }
     .msg-row.user { flex-direction: row-reverse; }
@@ -176,7 +206,8 @@
     .msg-av.hu { background: var(--bg4); border: 1px solid var(--border2); color: var(--text2); }
     .msg-body { max-width: 76%; }
     .msg-bubble {
-      padding: 11px 15px; border-radius: var(--radius); font-size: 0.88rem; line-height: 1.7;
+      padding: 11px 15px; border-radius: var(--radius);
+      font-size: 0.88rem; line-height: 1.7;
       white-space: pre-wrap; word-break: break-word;
     }
     .msg-row.ai .msg-bubble { background: var(--bg3); border: 1px solid var(--border); border-top-left-radius: 3px; }
@@ -184,11 +215,9 @@
     .msg-time { font-size: 0.65rem; color: var(--text3); margin-top: 4px; padding: 0 2px; }
     .msg-row.user .msg-time { text-align: right; }
 
-    /* audio player in bubble */
     .audio-player { margin-top: 10px; }
     .audio-player audio { width: 100%; height: 32px; filter: invert(1) hue-rotate(180deg); }
 
-    /* typing */
     .typing-bubble { display: flex; gap: 4px; align-items: center; height: 20px; }
     .typing-bubble span {
       width: 5px; height: 5px; border-radius: 50%; background: var(--cyan);
@@ -238,27 +267,27 @@
     .t-btn {
       background: transparent; border: 1px solid var(--border);
       border-radius: 7px; color: var(--text2); padding: 5px 11px;
-      font-size: 0.76rem; cursor: pointer; display: flex; align-items: center;
-      gap: 5px; transition: all 0.15s; font-family: 'Outfit', sans-serif;
+      font-size: 0.76rem; cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+      transition: all 0.15s; font-family: 'Outfit', sans-serif;
     }
     .t-btn i { font-size: 0.85rem; }
     .t-btn:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
-    .t-btn.recording { border-color: var(--red); color: var(--red); background: rgba(255,77,109,0.1); animation: pulse-btn 1s infinite; }
-    @keyframes pulse-btn { 0%,100%{box-shadow:0 0 0 0 rgba(255,77,109,0.4)} 50%{box-shadow:0 0 0 6px rgba(255,77,109,0)} }
 
     .send-btn {
       margin-left: auto; width: 34px; height: 34px; border-radius: 9px;
       background: var(--cyan); border: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      color: #000; font-size: 0.88rem; transition: opacity 0.2s, transform 0.15s;
+      color: #000; font-size: 0.88rem;
+      transition: opacity 0.2s, transform 0.15s;
     }
     .send-btn:hover { opacity: 0.85; transform: scale(1.06); }
     .send-btn:active { transform: scale(0.94); }
-    #file-input, #pdf-input { display: none; }
+    #file-input { display: none; }
 
     .disclaimer { text-align: center; font-size: 0.67rem; color: var(--text3); margin-top: 8px; max-width: 720px; margin-left: auto; margin-right: auto; }
 
-    /* ══ EMAIL PANEL ══ */
+    /* ══ SHARED PANEL STYLES ══ */
     .panel-body { flex: 1; overflow-y: auto; padding: 20px; }
     .panel-body::-webkit-scrollbar { width: 4px; }
     .panel-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
@@ -277,24 +306,15 @@
     }
     .card-dark:hover { border-color: var(--border2); }
 
-    .email-card-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
-    .email-av {
-      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
-      background: var(--bg4); border: 1px solid var(--border2);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.8rem; font-weight: 600; color: var(--cyan);
-    }
-    .email-meta { flex: 1; min-width: 0; }
-    .email-from { font-size: 0.82rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .email-subject { font-size: 0.75rem; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .email-summary { font-size: 0.8rem; color: var(--text2); line-height: 1.5; border-top: 1px solid var(--border); padding-top: 10px; margin-top: 4px; }
-    .email-summary strong { color: var(--cyan); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; }
-
     .form-dark {
       background: var(--bg3); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 18px; margin-bottom: 14px;
     }
-    .form-dark label { font-size: 0.73rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text2); display: block; margin-bottom: 5px; }
+    .form-dark label {
+      font-size: 0.73rem; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text2);
+      display: block; margin-bottom: 5px;
+    }
     .form-dark input, .form-dark textarea {
       width: 100%; background: var(--bg4); border: 1px solid var(--border2);
       border-radius: 8px; color: var(--text); padding: 9px 12px;
@@ -308,18 +328,35 @@
       background: var(--cyan); color: #000; border: none;
       border-radius: 8px; padding: 9px 20px; font-size: 0.83rem;
       font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif;
-      display: flex; align-items: center; gap: 7px; transition: opacity 0.2s;
+      display: inline-flex; align-items: center; gap: 7px;
+      transition: opacity 0.2s;
     }
     .btn-cyan:hover { opacity: 0.85; }
     .btn-outline {
-      background: transparent; color: var(--cyan); border: 1px solid rgba(0,212,255,0.3);
+      background: transparent; color: var(--cyan);
+      border: 1px solid rgba(0,212,255,0.3);
       border-radius: 8px; padding: 8px 16px; font-size: 0.82rem;
       cursor: pointer; font-family: 'Outfit', sans-serif;
-      display: flex; align-items: center; gap: 6px; transition: all 0.15s;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: all 0.15s;
     }
     .btn-outline:hover { background: var(--cyan-dim); }
 
-    /* ══ CALENDAR PANEL ══ */
+    /* ══ EMAIL ══ */
+    .email-card-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+    .email-av {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      background: var(--bg4); border: 1px solid var(--border2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 600; color: var(--cyan);
+    }
+    .email-meta { flex: 1; min-width: 0; }
+    .email-from { font-size: 0.82rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .email-subject { font-size: 0.75rem; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .email-summary { font-size: 0.8rem; color: var(--text2); line-height: 1.5; border-top: 1px solid var(--border); padding-top: 10px; margin-top: 4px; }
+    .email-summary strong { color: var(--cyan); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* ══ CALENDAR ══ */
     .event-card { display: flex; gap: 14px; align-items: flex-start; }
     .event-time-block {
       flex-shrink: 0; width: 52px; text-align: center;
@@ -330,13 +367,53 @@
     .event-info .e-title { font-size: 0.88rem; font-weight: 500; margin-bottom: 3px; }
     .event-info .e-loc { font-size: 0.75rem; color: var(--text2); display: flex; align-items: center; gap: 4px; }
 
-    /* ══ RAG PANEL ══ */
+    /* ══ RAG ══ */
     .rag-answer {
       background: var(--bg3); border: 1px solid rgba(0,212,255,0.2);
       border-radius: var(--radius); padding: 14px; font-size: 0.86rem;
       line-height: 1.7; color: var(--text); margin-top: 12px; display: none;
     }
     .rag-answer.show { display: block; animation: fadeUp 0.3s ease; }
+
+    /* ══ ABOUT ══ */
+    .about-hero {
+      text-align: center; padding: 2rem 1rem 1.5rem;
+      border-bottom: 1px solid var(--border); margin-bottom: 1.5rem;
+    }
+    .about-avatar {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: linear-gradient(135deg, #003d55, #001a26);
+      border: 2px solid rgba(0,212,255,0.3);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1rem;
+      box-shadow: 0 0 30px var(--cyan-glow);
+      font-size: 2rem;
+    }
+    .about-name {
+      font-family: 'Space Mono', monospace; font-size: 1.2rem;
+      color: var(--cyan); margin-bottom: 0.3rem;
+    }
+    .about-role { font-size: 0.85rem; color: var(--text2); }
+    .about-links {
+      display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap;
+    }
+    .about-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 16px; background: var(--bg3);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.8rem; color: var(--text2); text-decoration: none;
+      transition: all 0.15s;
+    }
+    .about-link:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+    .tech-grid {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 0.75rem;
+    }
+    .tech-tag {
+      padding: 4px 12px; background: var(--bg4);
+      border: 1px solid var(--border2); border-radius: 20px;
+      font-size: 0.75rem; color: var(--text2);
+      font-family: 'Space Mono', monospace;
+    }
 
     /* ══ TOAST ══ */
     .toast-wrap {
@@ -387,21 +464,8 @@
     }
     .btn-stop:hover { background: rgba(255,77,109,0.25); }
 
-    /* ══ LOADING SPINNER ══ */
     .spinner { width: 18px; height: 18px; border: 2px solid var(--border2); border-top-color: var(--cyan); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ══ RESPONSIVE ══ */
-    @media(max-width:768px) {
-      .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; transform: translateX(-100%); transition: transform 0.3s; }
-      .sidebar.open { transform: none; }
-      .mob-toggle { display: flex !important; }
-    }
-    .mob-toggle {
-      display: none; background: transparent; border: 1px solid var(--border);
-      border-radius: 7px; color: var(--text2); width: 32px; height: 32px;
-      align-items: center; justify-content: center; cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -412,29 +476,37 @@
     <div class="sidebar-head">
       <div class="logo">
         <span class="logo-dot"></span>
-        PULSE_NOVA
-        <small>v2.0 — AI Assistant</small>
+        <div>
+          PULSE_NOVA
+          <small>v2.0 — AI Assistant</small>
+        </div>
       </div>
+      <button class="sidebar-close" onclick="toggleSidebar()" title="Close sidebar">
+        <i class="bi bi-x"></i>
+      </button>
     </div>
 
     <div class="nav-section">
       <div class="nav-label">Core</div>
-      <div class="nav-item active" onclick="switchPanel('chat',this)">
+      <div class="nav-item active" onclick="switchPanel('chat', this)">
         <i class="bi bi-chat-dots"></i> Chat
-      </div>
-      <div class="nav-item" onclick="switchPanel('voice',this)">
-        <i class="bi bi-mic"></i> Voice
       </div>
 
       <div class="nav-label">Tools</div>
-      <div class="nav-item" onclick="switchPanel('email',this)">
+      <div class="nav-item" onclick="switchPanel('email', this)">
         <i class="bi bi-envelope"></i> Email
       </div>
-      <div class="nav-item" onclick="switchPanel('calendar',this)">
+      <div class="nav-item" onclick="switchPanel('calendar', this)">
         <i class="bi bi-calendar3"></i> Calendar
       </div>
-      <div class="nav-item" onclick="switchPanel('rag',this)">
-        <i class="bi bi-file-earmark-text"></i> Doc Q&A <span class="badge-pill">RAG</span>
+      <div class="nav-item" onclick="switchPanel('rag', this)">
+        <i class="bi bi-file-earmark-text"></i> Doc Q&A
+        <span class="badge-pill">RAG</span>
+      </div>
+
+      <div class="nav-label">Info</div>
+      <div class="nav-item" onclick="switchPanel('about', this)">
+        <i class="bi bi-person-circle"></i> About
       </div>
     </div>
 
@@ -451,20 +523,18 @@
 
     <!-- Topbar -->
     <div class="topbar">
-      <button class="mob-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="bi bi-list"></i></button>
+      <button class="topbar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
+        <i class="bi bi-layout-sidebar"></i>
+      </button>
       <span class="topbar-title">PULSE_NOVA / <span id="topbarLabel">chat</span></span>
       <div class="ms-auto">
         <span style="font-size:0.7rem;color:var(--text3);font-family:'Space Mono',monospace;">FastAPI · LM Studio</span>
       </div>
     </div>
 
-    <!-- ════════════════════════════
-         PANEL: CHAT
-    ════════════════════════════ -->
+    <!-- ════ PANEL: CHAT ════ -->
     <div class="panel active" id="panel-chat">
       <div class="chat-scroll" id="chatScroll">
-
-        <!-- Greeting -->
         <div id="greeting" class="greeting">
           <div class="greeting-glyph"><i class="bi bi-cpu-fill"></i></div>
           <h1>Hello. I'm <em>PulseNova</em>.</h1>
@@ -488,11 +558,9 @@
             </div>
           </div>
         </div>
-
         <div class="messages" id="messages"></div>
       </div>
 
-      <!-- Input -->
       <div class="input-zone">
         <div class="input-wrap" id="inputWrap">
           <div class="file-pill" id="filePill">
@@ -504,63 +572,26 @@
             onkeydown="onKey(event)" oninput="autoH(this)"></textarea>
           <div class="toolbar">
             <input type="file" id="file-input" accept="audio/*" onchange="setVoiceFile(event)"/>
-            <button class="t-btn" onclick="document.getElementById('file-input').click()" title="Upload voice audio">
+            <button class="t-btn" onclick="document.getElementById('file-input').click()">
               <i class="bi bi-mic"></i> Voice File
             </button>
-            <button class="t-btn" id="liveVoiceBtn" onclick="startLiveRecording()" title="Live microphone">
+            <button class="t-btn" onclick="startLiveRecording()">
               <i class="bi bi-record-circle"></i> Record
             </button>
-            <button class="send-btn" onclick="sendChat()"><i class="bi bi-arrow-up"></i></button>
+            <button class="send-btn" onclick="sendChat()">
+              <i class="bi bi-arrow-up"></i>
+            </button>
           </div>
         </div>
         <div class="disclaimer">PulseNova runs on your local LM Studio model. Keep sensitive data safe.</div>
       </div>
     </div>
 
-    <!-- ════════════════════════════
-         PANEL: VOICE (dedicated)
-    ════════════════════════════ -->
-    <div class="panel" id="panel-voice">
-      <div class="panel-body">
-        <div class="panel-title"><i class="bi bi-mic-fill"></i> Voice Interface</div>
-
-        <div class="form-dark">
-          <label>Upload Audio File</label>
-          <input type="file" id="voice-file-input" accept="audio/*" style="display:none" onchange="handleVoiceUpload(event)"/>
-          <button class="btn-outline mb-3" onclick="document.getElementById('voice-file-input').click()">
-            <i class="bi bi-upload"></i> Choose Audio File
-          </button>
-          <div id="voiceFileName" style="font-size:0.78rem;color:var(--text2);margin-bottom:10px;"></div>
-          <button class="btn-cyan" onclick="submitVoiceFile()">
-            <i class="bi bi-send"></i> Send to PulseNova
-          </button>
-        </div>
-
-        <div id="voiceResult" class="rag-answer"></div>
-
-        <div class="form-dark mt-3">
-          <label>Live Microphone</label>
-          <p style="font-size:0.78rem;color:var(--text2);margin-bottom:12px;">Record directly from your microphone and send to PulseNova.</p>
-          <button class="btn-cyan" id="liveRecBtn" onclick="toggleLiveRec()">
-            <i class="bi bi-record-circle"></i> Start Recording
-          </button>
-        </div>
-
-        <div id="voiceAudioResult" style="margin-top:14px;display:none">
-          <div style="font-size:0.75rem;color:var(--text2);margin-bottom:6px;">Response audio:</div>
-          <audio id="responseAudio" controls style="width:100%;filter:invert(1) hue-rotate(180deg)"></audio>
-        </div>
-      </div>
-    </div>
-
-    <!-- ════════════════════════════
-         PANEL: EMAIL
-    ════════════════════════════ -->
+    <!-- ════ PANEL: EMAIL ════ -->
     <div class="panel" id="panel-email">
       <div class="panel-body">
         <div class="panel-title"><i class="bi bi-envelope-fill"></i> Email</div>
 
-        <!-- Read emails -->
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
           <button class="btn-cyan" onclick="loadEmails()">
             <i class="bi bi-arrow-clockwise"></i> Load Unread Emails
@@ -568,17 +599,15 @@
         </div>
         <div id="emailList"></div>
 
-        <!-- Divider -->
         <div style="border-top:1px solid var(--border);margin:20px 0;"></div>
 
-        <!-- Compose -->
         <div class="panel-title" style="font-size:0.88rem;"><i class="bi bi-pencil"></i> Compose Email</div>
         <div class="form-dark">
           <label>To</label>
           <input type="email" id="emailTo" placeholder="recipient@example.com"/>
           <label>Subject</label>
           <input type="text" id="emailSubject" placeholder="Email subject…"/>
-          <label>What should I write? (describe the intention)</label>
+          <label>What should I write? (describe your intention)</label>
           <textarea id="emailBody" placeholder="e.g. Write a polite follow-up about the meeting scheduled last week…"></textarea>
           <button class="btn-cyan" onclick="sendEmail()">
             <i class="bi bi-send"></i> Send Email
@@ -587,9 +616,7 @@
       </div>
     </div>
 
-    <!-- ════════════════════════════
-         PANEL: CALENDAR
-    ════════════════════════════ -->
+    <!-- ════ PANEL: CALENDAR ════ -->
     <div class="panel" id="panel-calendar">
       <div class="panel-body">
         <div class="panel-title"><i class="bi bi-calendar3"></i> Calendar</div>
@@ -599,8 +626,11 @@
             <i class="bi bi-calendar-week"></i> Upcoming Events
           </button>
           <div style="display:flex;align-items:center;gap:6px;">
-            <input type="date" id="calDatePicker" style="background:var(--bg4);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:7px 10px;font-family:'Outfit',sans-serif;font-size:0.82rem;outline:none;"/>
-            <button class="btn-outline" onclick="loadByDate()"><i class="bi bi-search"></i> By Date</button>
+            <input type="date" id="calDatePicker"
+              style="background:var(--bg4);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:7px 10px;font-family:'Outfit',sans-serif;font-size:0.82rem;outline:none;"/>
+            <button class="btn-outline" onclick="loadByDate()">
+              <i class="bi bi-search"></i> By Date
+            </button>
           </div>
         </div>
         <div id="eventList"></div>
@@ -617,7 +647,7 @@
               <input type="date" id="evDate"/>
             </div>
             <div>
-              <label>Time (HH:MM)</label>
+              <label>Time</label>
               <input type="time" id="evTime"/>
             </div>
           </div>
@@ -634,14 +664,14 @@
       </div>
     </div>
 
-    <!-- ════════════════════════════
-         PANEL: RAG
-    ════════════════════════════ -->
+    <!-- ════ PANEL: RAG ════ -->
     <div class="panel" id="panel-rag">
       <div class="panel-body">
-        <div class="panel-title"><i class="bi bi-file-earmark-text-fill"></i> Document Q&A <span style="font-size:0.65rem;color:var(--cyan);font-family:'Space Mono',monospace;margin-left:4px;">RAG</span></div>
+        <div class="panel-title">
+          <i class="bi bi-file-earmark-text-fill"></i> Document Q&A
+          <span style="font-size:0.65rem;color:var(--cyan);font-family:'Space Mono',monospace;margin-left:4px;">RAG</span>
+        </div>
 
-        <!-- Upload PDF -->
         <div class="form-dark">
           <label>Upload PDF Document</label>
           <input type="file" id="pdf-input" accept=".pdf" onchange="handlePdfSelect(event)" style="display:none"/>
@@ -658,16 +688,16 @@
           </div>
         </div>
 
-        <!-- Ingest emails -->
         <div class="form-dark">
-          <label>Ingest Emails into RAG</label>
-          <p style="font-size:0.78rem;color:var(--text2);margin-bottom:10px;">Load your unread emails into the knowledge base so you can query them.</p>
+          <label>Ingest Emails into Knowledge Base</label>
+          <p style="font-size:0.78rem;color:var(--text2);margin-bottom:10px;">
+            Load your unread emails so you can query them with AI.
+          </p>
           <button class="btn-outline" onclick="ingestEmails()">
             <i class="bi bi-envelope-arrow-down"></i> Ingest Emails
           </button>
         </div>
 
-        <!-- Documents list -->
         <div class="form-dark">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
             <label style="margin:0;">Ingested Documents</label>
@@ -678,10 +708,11 @@
           <div id="docList" style="font-size:0.8rem;color:var(--text2);">Click refresh to load…</div>
         </div>
 
-        <!-- Query -->
         <div class="form-dark">
           <label>Ask a Question</label>
-          <textarea id="ragQuestion" placeholder="What does the contract say about termination clauses?…" style="min-height:70px;margin-bottom:10px;"></textarea>
+          <textarea id="ragQuestion"
+            placeholder="What does the contract say about termination clauses?…"
+            style="min-height:70px;margin-bottom:10px;"></textarea>
           <button class="btn-cyan" onclick="queryRag()">
             <i class="bi bi-search"></i> Ask PulseNova
           </button>
@@ -690,8 +721,84 @@
       </div>
     </div>
 
-  </div><!-- /main -->
-</div><!-- /app -->
+    <!-- ════ PANEL: ABOUT ════ -->
+    <div class="panel" id="panel-about">
+      <div class="panel-body">
+        <div class="about-hero">
+          <div class="about-avatar">👨‍💻</div>
+          <div class="about-name">Rajat Goswami</div>
+          <div class="about-role">Computer Science Student · Looking for Werkstudent in Germany 🇩🇪</div>
+          <div class="about-links">
+            <a href="https://github.com" target="_blank" class="about-link">
+              <i class="bi bi-github"></i> GitHub
+            </a>
+            <a href="https://linkedin.com" target="_blank" class="about-link">
+              <i class="bi bi-linkedin"></i> LinkedIn
+            </a>
+            <a href="mailto:your@email.com" class="about-link">
+              <i class="bi bi-envelope"></i> Email
+            </a>
+          </div>
+        </div>
+
+        <div class="card-dark">
+          <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text2);margin-bottom:10px;">About PulseNova</div>
+          <p style="font-size:0.85rem;color:var(--text2);line-height:1.7;">
+            PulseNova is a personal AI assistant that automates productivity tools — Gmail, Google Calendar,
+            document knowledge retrieval, and voice interaction — through natural language commands.
+            It runs entirely locally using LLaMA 3.1 8B via LM Studio, ensuring full privacy.
+          </p>
+        </div>
+
+        <div class="card-dark">
+          <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text2);margin-bottom:10px;">Tech Stack</div>
+          <div class="tech-grid">
+            <span class="tech-tag">FastAPI</span>
+            <span class="tech-tag">LLaMA 3.1 8B</span>
+            <span class="tech-tag">LM Studio</span>
+            <span class="tech-tag">ChromaDB</span>
+            <span class="tech-tag">Faster-Whisper</span>
+            <span class="tech-tag">gTTS</span>
+            <span class="tech-tag">Google Calendar API</span>
+            <span class="tech-tag">Gmail IMAP</span>
+            <span class="tech-tag">Discord.py</span>
+            <span class="tech-tag">Sentence Transformers</span>
+            <span class="tech-tag">Python 3.11</span>
+          </div>
+        </div>
+
+        <div class="card-dark">
+          <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text2);margin-bottom:10px;">Features</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.83rem;">
+              <i class="bi bi-check-circle" style="color:var(--green)"></i> Natural language chat via LLaMA 3.1 8B
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.83rem;">
+              <i class="bi bi-check-circle" style="color:var(--green)"></i> Voice input (Faster-Whisper STT) + audio output (TTS)
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.83rem;">
+              <i class="bi bi-check-circle" style="color:var(--green)"></i> Gmail read, summarize & send with LLM composition
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.83rem;">
+              <i class="bi bi-check-circle" style="color:var(--green)"></i> Google Calendar create, modify & delete events
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.83rem;">
+              <i class="bi bi-check-circle" style="color:var(--green)"></i> RAG over PDFs & emails with ChromaDB
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.83rem;">
+              <i class="bi bi-check-circle" style="color:var(--green)"></i> Discord bot with intent detection orchestrator
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.83rem;">
+              <i class="bi bi-check-circle" style="color:var(--green)"></i> 100% local — no external AI APIs
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <!-- Toast container -->
 <div class="toast-wrap" id="toastWrap"></div>
@@ -703,21 +810,21 @@
     <h5>Recording…</h5>
     <p>Speak clearly. Click stop when done.</p>
     <button class="btn-stop" onclick="stopLiveRecording()">
-      <i class="bi bi-stop-fill me-1"></i> Stop & Send
+      <i class="bi bi-stop-fill"></i> Stop & Send
     </button>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// ════════════════════════════════════════════
-//  CONFIG — change if your server runs elsewhere
-// ════════════════════════════════════════════
 const BASE = 'http://127.0.0.1:8000';
 
-// ════════════════════════════════════════════
-//  PANEL SWITCHING
-// ════════════════════════════════════════════
+// ════ SIDEBAR TOGGLE ════
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+// ════ PANEL SWITCHING ════
 function switchPanel(id, el) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -726,10 +833,8 @@ function switchPanel(id, el) {
   document.getElementById('topbarLabel').textContent = id;
 }
 
-// ════════════════════════════════════════════
-//  TOAST
-// ════════════════════════════════════════════
-function toast(msg, type='info', icon='bi-info-circle') {
+// ════ TOAST ════
+function toast(msg, type = 'info', icon = 'bi-info-circle') {
   const wrap = document.getElementById('toastWrap');
   const el = document.createElement('div');
   el.className = `toast-item ${type}`;
@@ -738,9 +843,7 @@ function toast(msg, type='info', icon='bi-info-circle') {
   setTimeout(() => el.remove(), 3500);
 }
 
-// ════════════════════════════════════════════
-//  CHAT
-// ════════════════════════════════════════════
+// ════ CHAT ════
 let voiceFileForChat = null;
 let mediaRecorder, recordedChunks = [];
 
@@ -766,12 +869,20 @@ function scrollBot() {
 function getTime() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/\n/g, '<br/>');
+}
 
 function addMsg(role, text, audioUrl = null) {
   const list = document.getElementById('messages');
   const row = document.createElement('div');
   row.className = `msg-row ${role}`;
-  const av = role === 'ai' ? '<div class="msg-av ai">PN</div>' : '<div class="msg-av hu">U</div>';
+  const av = role === 'ai'
+    ? '<div class="msg-av ai">PN</div>'
+    : '<div class="msg-av hu">U</div>';
   let extra = '';
   if (audioUrl) extra = `<div class="audio-player"><audio controls src="${audioUrl}"></audio></div>`;
   row.innerHTML = `${av}
@@ -781,7 +892,6 @@ function addMsg(role, text, audioUrl = null) {
     </div>`;
   list.appendChild(row);
   scrollBot();
-  return row;
 }
 
 function showTyping() {
@@ -790,7 +900,9 @@ function showTyping() {
   row.className = 'msg-row ai'; row.id = 'typingRow';
   row.innerHTML = `<div class="msg-av ai">PN</div>
     <div class="msg-body">
-      <div class="msg-bubble"><div class="typing-bubble"><span></span><span></span><span></span></div></div>
+      <div class="msg-bubble">
+        <div class="typing-bubble"><span></span><span></span><span></span></div>
+      </div>
     </div>`;
   list.appendChild(row); scrollBot();
 }
@@ -799,30 +911,62 @@ function removeTyping() { const t = document.getElementById('typingRow'); if (t)
 async function sendChat() {
   const inp = document.getElementById('chatInput');
   const text = inp.value.trim();
-  if (!text && !voiceFileForChat) return;
+
+  if (!voiceFileForChat && !text) return;
   hideGreeting();
 
   if (voiceFileForChat) {
-    // Send to /generate/voice
-    addMsg('user', `🎤 Voice message: ${voiceFileForChat.name}`);
-    inp.value = ''; inp.style.height = 'auto'; clearFile();
+    const fileToSend = voiceFileForChat;
+    voiceFileForChat = null;
+    clearFile();
+
+    console.log('📤 Sending file:', fileToSend.name, fileToSend.size, 'bytes');
+    addMsg('user', `🎤 Voice: ${fileToSend.name || 'audio'}`);
+    inp.value = ''; inp.style.height = 'auto';
     showTyping();
+
     try {
       const fd = new FormData();
-      fd.append('audio', voiceFileForChat);
-      const res = await fetch(`${BASE}/generate/voice`, { method: 'POST', body: fd });
+      fd.append('audio', fileToSend, fileToSend.name || 'recording.webm');
+
+      // ✅ 3 minute timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error('❌ Request timed out after 3 minutes');
+      }, 180000);
+
+      console.log('📡 Fetching backend...');
+      const res = await fetch(`${BASE}/generate/voice`, {
+        method: 'POST',
+        body: fd,
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);  // ✅ clear timeout on success
+
+      console.log('📥 Status:', res.status);
       const data = await res.json();
+      console.log('✅ Data:', data);
+
       removeTyping();
       addMsg('ai', data.response || '❌ No response', data.audio || null);
+
     } catch(e) {
       removeTyping();
-      addMsg('ai', `❌ Error: ${e.message}`);
+      if (e.name === 'AbortError') {
+        addMsg('ai', '❌ Request timed out. The audio processing took too long. Try a shorter audio clip!');
+      } else {
+        console.error('❌ Fetch error:', e);
+        addMsg('ai', `❌ Error: ${e.message}`);
+      }
     }
-    voiceFileForChat = null;
     return;
   }
 
-  // Text chat
+
+
+  // Text path
   addMsg('user', text);
   inp.value = ''; inp.style.height = 'auto';
   showTyping();
@@ -837,26 +981,26 @@ async function sendChat() {
     addMsg('ai', data.response || '❌ Empty response');
   } catch(e) {
     removeTyping();
-    addMsg('ai', `❌ Could not reach PulseNova backend.\n\nMake sure your FastAPI server is running at ${BASE}`);
+    addMsg('ai', `❌ Could not reach backend at ${BASE}`);
   }
 }
+
 
 function setVoiceFile(e) {
-  voiceFileForChat = e.target.files[0];
-  if (voiceFileForChat) {
-    document.getElementById('filePillName').textContent = voiceFileForChat.name;
-    document.getElementById('filePill').classList.add('show');
-    document.getElementById('chatInput').placeholder = 'Add a message or just press send…';
-  }
+  const file = e.target.files[0];
+  if (!file) return;
+  voiceFileForChat = file;  // store directly as File object
+  document.getElementById('filePillName').textContent = file.name;
+  document.getElementById('filePill').classList.add('show');
 }
 function clearFile() {
-  voiceFileForChat = null;
+  // ✅ Don't touch voiceFileForChat here — only clear UI
   document.getElementById('file-input').value = '';
   document.getElementById('filePill').classList.remove('show');
-  document.getElementById('chatInput').placeholder = 'Message PulseNova…';
+  document.getElementById('filePillName').textContent = '—';
 }
 
-// ── Live recording ──
+
 async function startLiveRecording() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -865,7 +1009,7 @@ async function startLiveRecording() {
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
     mediaRecorder.start();
     document.getElementById('voiceModal').classList.add('show');
-  } catch(e) {
+  } catch (e) {
     toast('Microphone access denied', 'error', 'bi-mic-mute');
   }
 }
@@ -873,81 +1017,18 @@ async function stopLiveRecording() {
   document.getElementById('voiceModal').classList.remove('show');
   mediaRecorder.stop();
   mediaRecorder.stream.getTracks().forEach(t => t.stop());
+
   await new Promise(r => mediaRecorder.onstop = r);
+
   const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-  const file = new File([blob], 'recording.webm', { type: 'audio/webm' });
-  voiceFileForChat = file;
+  voiceFileForChat = new File([blob], 'recording.webm', { type: 'audio/webm' });
+
   document.getElementById('filePillName').textContent = 'recording.webm';
   document.getElementById('filePill').classList.add('show');
   toast('Recording captured — press send!', 'success', 'bi-check-circle');
 }
 
-// also for voice panel
-function toggleLiveRec() {
-  const btn = document.getElementById('liveRecBtn');
-  if (btn.dataset.recording === 'true') {
-    stopVoicePanelRec();
-  } else {
-    startVoicePanelRec(btn);
-  }
-}
-let voicePanelRecorder;
-async function startVoicePanelRec(btn) {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    voicePanelRecorder = new MediaRecorder(stream);
-    const chunks = [];
-    voicePanelRecorder.ondataavailable = e => chunks.push(e.data);
-    voicePanelRecorder.onstop = async () => {
-      const blob = new Blob(chunks, { type: 'audio/webm' });
-      const file = new File([blob], 'live.webm', { type: 'audio/webm' });
-      await sendVoiceToAPI(file);
-    };
-    voicePanelRecorder.start();
-    btn.dataset.recording = 'true';
-    btn.innerHTML = '<i class="bi bi-stop-circle"></i> Stop & Send';
-    btn.style.background = 'rgba(255,77,109,0.2)';
-  } catch(e) { toast('Mic denied', 'error', 'bi-mic-mute'); }
-}
-function stopVoicePanelRec() {
-  voicePanelRecorder.stop();
-  voicePanelRecorder.stream.getTracks().forEach(t => t.stop());
-  const btn = document.getElementById('liveRecBtn');
-  btn.dataset.recording = '';
-  btn.innerHTML = '<i class="bi bi-record-circle"></i> Start Recording';
-  btn.style.background = '';
-}
-
-let selectedVoiceFile = null;
-function handleVoiceUpload(e) {
-  selectedVoiceFile = e.target.files[0];
-  document.getElementById('voiceFileName').textContent = selectedVoiceFile ? selectedVoiceFile.name : '';
-}
-async function submitVoiceFile() {
-  if (!selectedVoiceFile) { toast('Please select an audio file first', 'error', 'bi-exclamation-circle'); return; }
-  await sendVoiceToAPI(selectedVoiceFile);
-}
-async function sendVoiceToAPI(file) {
-  toast('Sending to PulseNova…', 'info', 'bi-hourglass');
-  try {
-    const fd = new FormData(); fd.append('audio', file);
-    const res = await fetch(`${BASE}/generate/voice`, { method: 'POST', body: fd });
-    const data = await res.json();
-    document.getElementById('voiceResult').textContent = data.response || '—';
-    document.getElementById('voiceResult').classList.add('show');
-    if (data.audio) {
-      document.getElementById('responseAudio').src = data.audio;
-      document.getElementById('voiceAudioResult').style.display = 'block';
-    }
-    toast('Response received!', 'success', 'bi-check-circle');
-  } catch(e) {
-    toast('Backend error: ' + e.message, 'error', 'bi-x-circle');
-  }
-}
-
-// ════════════════════════════════════════════
-//  EMAIL
-// ════════════════════════════════════════════
+// ════ EMAIL ════
 async function loadEmails() {
   const list = document.getElementById('emailList');
   list.innerHTML = `<div style="color:var(--text2);font-size:0.82rem;display:flex;align-items:center;gap:8px;"><div class="spinner"></div> Loading emails…</div>`;
@@ -955,7 +1036,10 @@ async function loadEmails() {
     const res = await fetch(`${BASE}/email/read`);
     const data = await res.json();
     const emails = data.emails || [];
-    if (!emails.length) { list.innerHTML = `<div class="card-dark" style="color:var(--text2);">📭 No unread emails.</div>`; return; }
+    if (!emails.length) {
+      list.innerHTML = `<div class="card-dark" style="color:var(--text2);">📭 No unread emails.</div>`;
+      return;
+    }
     list.innerHTML = emails.map(e => {
       const initial = (e.from || '?')[0].toUpperCase();
       return `<div class="card-dark">
@@ -966,10 +1050,13 @@ async function loadEmails() {
             <div class="email-subject">${escHtml(e.subject)}</div>
           </div>
         </div>
-        <div class="email-summary"><strong>Summary</strong><br/>${escHtml(e.summary || e.body?.substring(0, 200) || '—')}</div>
+        <div class="email-summary">
+          <strong>Summary</strong><br/>
+          ${escHtml(e.summary || e.body?.substring(0, 200) || '—')}
+        </div>
       </div>`;
     }).join('');
-  } catch(ex) {
+  } catch (ex) {
     list.innerHTML = `<div class="card-dark" style="color:var(--red);">❌ Could not load emails. Is the backend running?</div>`;
   }
 }
@@ -995,19 +1082,20 @@ async function sendEmail() {
     } else {
       toast('Backend error', 'error', 'bi-x-circle');
     }
-  } catch(e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
+  } catch (e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
 }
 
-// ════════════════════════════════════════════
-//  CALENDAR
-// ════════════════════════════════════════════
+// ════ CALENDAR ════
 function renderEvents(events) {
   const list = document.getElementById('eventList');
-  if (!events.length) { list.innerHTML = `<div class="card-dark" style="color:var(--text2);">📅 No events found.</div>`; return; }
+  if (!events.length) {
+    list.innerHTML = `<div class="card-dark" style="color:var(--text2);">📅 No events found.</div>`;
+    return;
+  }
   list.innerHTML = events.map(ev => {
     const dt = new Date(ev.start);
-    const timeStr = isNaN(dt) ? ev.start : dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    const dateStr = isNaN(dt) ? '' : dt.toLocaleDateString([], {month:'short',day:'numeric'});
+    const timeStr = isNaN(dt) ? ev.start : dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = isNaN(dt) ? '' : dt.toLocaleDateString([], { month: 'short', day: 'numeric' });
     return `<div class="card-dark">
       <div class="event-card">
         <div class="event-time-block">
@@ -1032,7 +1120,9 @@ async function loadUpcoming() {
     const res = await fetch(`${BASE}/calendar/upcoming`);
     const data = await res.json();
     renderEvents(data.events || []);
-  } catch(e) { document.getElementById('eventList').innerHTML = `<div class="card-dark" style="color:var(--red);">❌ Error loading events.</div>`; }
+  } catch (e) {
+    document.getElementById('eventList').innerHTML = `<div class="card-dark" style="color:var(--red);">❌ Error loading events.</div>`;
+  }
 }
 
 async function loadByDate() {
@@ -1043,7 +1133,9 @@ async function loadByDate() {
     const res = await fetch(`${BASE}/calendar/date/${date}`);
     const data = await res.json();
     renderEvents(data.events || []);
-  } catch(e) { document.getElementById('eventList').innerHTML = `<div class="card-dark" style="color:var(--red);">❌ Error loading events.</div>`; }
+  } catch (e) {
+    document.getElementById('eventList').innerHTML = `<div class="card-dark" style="color:var(--red);">❌ Error loading events.</div>`;
+  }
 }
 
 async function createEvent() {
@@ -1054,9 +1146,7 @@ async function createEvent() {
   toast('Creating event…', 'info', 'bi-hourglass');
   try {
     const body = {
-      summary,
-      date,
-      time,
+      summary, date, time,
       duration_hours: parseInt(document.getElementById('evDuration').value) || 1,
       location: document.getElementById('evLocation').value,
       description: document.getElementById('evDesc').value
@@ -1075,12 +1165,10 @@ async function createEvent() {
       document.getElementById('evLocation').value = '';
       document.getElementById('evDesc').value = '';
     }
-  } catch(e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
+  } catch (e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
 }
 
-// ════════════════════════════════════════════
-//  RAG
-// ════════════════════════════════════════════
+// ════ RAG ════
 let selectedPdf = null;
 function handlePdfSelect(e) {
   selectedPdf = e.target.files[0];
@@ -1094,9 +1182,10 @@ async function uploadPdf() {
     const res = await fetch(`${BASE}/rag/upload`, { method: 'POST', body: fd });
     const data = await res.json();
     toast(data.status === 'ingested' ? `Ingested: ${data.chunks_stored} chunks` : 'Ingestion complete', 'success', 'bi-check-circle');
-    selectedPdf = null; document.getElementById('pdf-input').value = '';
+    selectedPdf = null;
+    document.getElementById('pdf-input').value = '';
     document.getElementById('pdfFileName').textContent = 'No file selected';
-  } catch(e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
+  } catch (e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
 }
 async function ingestEmails() {
   toast('Ingesting emails into RAG…', 'info', 'bi-hourglass');
@@ -1104,7 +1193,7 @@ async function ingestEmails() {
     const res = await fetch(`${BASE}/rag/ingest-emails`, { method: 'POST' });
     const data = await res.json();
     toast(`Ingested ${data.emails_stored || '?'} emails`, 'success', 'bi-check-circle');
-  } catch(e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
+  } catch (e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
 }
 async function listDocs() {
   const el = document.getElementById('docList');
@@ -1114,16 +1203,17 @@ async function listDocs() {
     const data = await res.json();
     const docs = data.documents || [];
     el.innerHTML = docs.length
-      ? docs.map(d => `<div style="padding:5px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;"><i class="bi bi-file-earmark" style="color:var(--cyan)"></i>${escHtml(d)}</div>`).join('')
+      ? docs.map(d => `<div style="padding:5px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;">
+          <i class="bi bi-file-earmark" style="color:var(--cyan)"></i>${escHtml(d)}
+        </div>`).join('')
       : 'No documents ingested yet.';
-  } catch(e) { el.textContent = 'Error loading documents.'; }
+  } catch (e) { el.textContent = 'Error loading documents.'; }
 }
 async function queryRag() {
   const q = document.getElementById('ragQuestion').value.trim();
   if (!q) { toast('Enter a question first', 'error', 'bi-question'); return; }
   const ans = document.getElementById('ragAnswer');
-  ans.classList.remove('show');
-  ans.textContent = '';
+  ans.classList.remove('show'); ans.textContent = '';
   toast('Searching your documents…', 'info', 'bi-search');
   try {
     const res = await fetch(`${BASE}/rag/query`, {
@@ -1134,17 +1224,7 @@ async function queryRag() {
     const data = await res.json();
     ans.textContent = data.answer || 'No answer returned.';
     ans.classList.add('show');
-  } catch(e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
-}
-
-// ════════════════════════════════════════════
-//  UTILS
-// ════════════════════════════════════════════
-function escHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/\n/g,'<br/>');
+  } catch (e) { toast('Error: ' + e.message, 'error', 'bi-x-circle'); }
 }
 </script>
 </body>
