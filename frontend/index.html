@@ -578,6 +578,9 @@
             <button class="t-btn" onclick="startLiveRecording()">
               <i class="bi bi-record-circle"></i> Record
             </button>
+            <button class="t-btn" onclick="clearMemory()">
+              <i class="bi bi-trash"></i> Clear Memory
+            </button>
             <button class="send-btn" onclick="sendChat()">
               <i class="bi bi-arrow-up"></i>
             </button>
@@ -818,6 +821,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 const BASE = 'http://127.0.0.1:8000';
+const SESSION_ID = 'session_' + Date.now();
 
 // ════ SIDEBAR TOGGLE ════
 function toggleSidebar() {
@@ -843,7 +847,7 @@ function toast(msg, type = 'info', icon = 'bi-info-circle') {
   setTimeout(() => el.remove(), 3500);
 }
 
-// ════ CHAT ════
+// ════ CHAT HELPERS ════
 let voiceFileForChat = null;
 let mediaRecorder, recordedChunks = [];
 
@@ -908,6 +912,16 @@ function showTyping() {
 }
 function removeTyping() { const t = document.getElementById('typingRow'); if (t) t.remove(); }
 
+// ════ CLEAR MEMORY ════  ← FIX: now a proper top-level function
+async function clearMemory() {
+  try {
+    await fetch(`${BASE}/memory/clear?session_id=${SESSION_ID}`, { method: 'DELETE' });
+  } catch(e) { /* backend may not be running */ }
+  document.getElementById('messages').innerHTML = '';
+  toast('Memory cleared!', 'success', 'bi-trash');
+}
+
+// ════ SEND CHAT ════
 async function sendChat() {
   const inp = document.getElementById('chatInput');
   const text = inp.value.trim();
@@ -915,12 +929,12 @@ async function sendChat() {
   if (!voiceFileForChat && !text) return;
   hideGreeting();
 
+  // — Voice file path —
   if (voiceFileForChat) {
     const fileToSend = voiceFileForChat;
     voiceFileForChat = null;
     clearFile();
 
-    console.log('📤 Sending file:', fileToSend.name, fileToSend.size, 'bytes');
     addMsg('user', `🎤 Voice: ${fileToSend.name || 'audio'}`);
     inp.value = ''; inp.style.height = 'auto';
     showTyping();
@@ -929,44 +943,32 @@ async function sendChat() {
       const fd = new FormData();
       fd.append('audio', fileToSend, fileToSend.name || 'recording.webm');
 
-      // ✅ 3 minute timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-        console.error('❌ Request timed out after 3 minutes');
-      }, 180000);
+      const timeoutId = setTimeout(() => controller.abort(), 360000);
 
-      console.log('📡 Fetching backend...');
       const res = await fetch(`${BASE}/generate/voice`, {
         method: 'POST',
         body: fd,
         signal: controller.signal
       });
+      clearTimeout(timeoutId);
 
-      clearTimeout(timeoutId);  // ✅ clear timeout on success
-
-      console.log('📥 Status:', res.status);
       const data = await res.json();
-      console.log('✅ Data:', data);
-
       removeTyping();
       addMsg('ai', data.response || '❌ No response', data.audio || null);
 
     } catch(e) {
       removeTyping();
       if (e.name === 'AbortError') {
-        addMsg('ai', '❌ Request timed out. The audio processing took too long. Try a shorter audio clip!');
+        addMsg('ai', '❌ Request timed out. Try a shorter audio clip!');
       } else {
-        console.error('❌ Fetch error:', e);
         addMsg('ai', `❌ Error: ${e.message}`);
       }
     }
     return;
   }
 
-
-
-  // Text path
+  // — Text chat path —
   addMsg('user', text);
   inp.value = ''; inp.style.height = 'auto';
   showTyping();
@@ -974,7 +976,7 @@ async function sendChat() {
     const res = await fetch(`${BASE}/generate/text`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: text })
+      body: JSON.stringify({ prompt: text, session_id: SESSION_ID })
     });
     const data = await res.json();
     removeTyping();
@@ -985,22 +987,21 @@ async function sendChat() {
   }
 }
 
-
+// ════ VOICE FILE ════
 function setVoiceFile(e) {
   const file = e.target.files[0];
   if (!file) return;
-  voiceFileForChat = file;  // store directly as File object
+  voiceFileForChat = file;
   document.getElementById('filePillName').textContent = file.name;
   document.getElementById('filePill').classList.add('show');
 }
 function clearFile() {
-  // ✅ Don't touch voiceFileForChat here — only clear UI
   document.getElementById('file-input').value = '';
   document.getElementById('filePill').classList.remove('show');
   document.getElementById('filePillName').textContent = '—';
 }
 
-
+// ════ LIVE RECORDING ════
 async function startLiveRecording() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });

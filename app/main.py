@@ -7,6 +7,7 @@ import shutil
 import os
 from services import stt, tts, gmail_bot, calendar_service, orchestrator, rag_services
 from fastapi.responses import FileResponse
+from services import memory
 
 app = FastAPI()
 
@@ -30,6 +31,7 @@ app.mount("/audio", StaticFiles(directory="data/audio"), name="audio")
 # ----------------------
 class PromptRequest(BaseModel):
     prompt: str
+    session_id : str = "default"
 
 class SendEmailRequest(BaseModel):
     to: str
@@ -69,16 +71,28 @@ def favicon():
 def serve_ui():
     return FileResponse("frontend/index.html")
 
-def query_llm(user_prompt: str):
+def query_llm(user_prompt: str, session_id: str = "default"):
+    # ✅ Add user message to history
+    memory.add_message(session_id, "user", user_prompt)
+    
+    # ✅ Build messages with full history
     messages = [
-        {"role": "system", "content": "You are PulseNova, a friendly, witty, and helpful AI assistant."},
-        {"role": "user", "content": user_prompt}
-    ]
+        {"role": "system", "content": """You are PulseNova, a friendly, 
+witty, and helpful AI assistant. You remember the conversation history 
+and refer back to it when relevant."""}
+    ] + memory.get_history(session_id)  # ← full history included
+    
     response = requests.post(
         "http://localhost:1234/v1/chat/completions",
         json={"model": "local-model", "messages": messages}
     ).json()
-    return response["choices"][0]["message"]["content"]
+    
+    assistant_text = response["choices"][0]["message"]["content"]
+    
+    # ✅ Add assistant response to history
+    memory.add_message(session_id, "assistant", assistant_text)
+    
+    return assistant_text
 
 # ----------------------
 # General Routes
@@ -89,25 +103,27 @@ def home():
 
 @app.post('/generate/text')
 def generate_from_text(prompt_req: PromptRequest):
-    return {"response": query_llm(prompt_req.prompt)}
+    return {"response": query_llm(prompt_req.prompt, prompt_req.session_id)}
 
 @app.post('/generate/voice')
 async def generate_from_voice(audio: UploadFile = File(...)):
     import asyncio
     loop = asyncio.get_event_loop()
-
-    # ✅ Run blocking operations in thread pool
     user_prompt = await loop.run_in_executor(None, stt.audio_to_text, audio)
-    print(f"✅ Transcribed: {user_prompt}")
-
-    assistant_text = query_llm(user_prompt)
-    print(f"✅ LLM replied: {assistant_text[:100]}")
-
+    # ✅ Voice uses default session
+    assistant_text = query_llm(user_prompt, "voice_session")
     audio_path = tts.text_to_audio(assistant_text)
     audio_url = f"http://127.0.0.1:8000/audio/{audio_path.split('/')[-1]}"
-    print(f"✅ Audio URL: {audio_url}")
-
     return {"response": assistant_text, "audio": audio_url}
+
+# ✅ Add memory management endpoints
+@app.delete('/memory/clear')
+def clear_memory(session_id: str = "default"):
+    return memory.clear_history(session_id)
+
+@app.get('/memory/history')
+def get_memory(session_id: str = "default"):
+    return {"history": memory.get_history(session_id)}
 
 # ----------------------
 # Email Routes
