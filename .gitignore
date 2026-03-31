@@ -4,7 +4,7 @@
 venv/
 env/
 .venv/
-pulse/        # your virtual environment
+pulse/
 ENV/
 env.bak/
 venv.bak/
