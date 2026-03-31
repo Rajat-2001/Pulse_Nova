@@ -117,3 +117,4 @@ run_auth.py
 .env
 *.gguf
 data/models/
+config.js
