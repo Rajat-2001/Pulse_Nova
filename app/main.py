@@ -69,7 +69,7 @@ def favicon():
     return {"status": "ok"}
 @app.get("/ui")
 def serve_ui():
-    return FileResponse("frontend/index.html")
+    return FileResponse("/Users/rajatgoswami/Downloads/PULSE_NOVA/index.html")
 
 def query_llm(user_prompt: str, session_id: str = "default"):
     # ✅ Add user message to history
